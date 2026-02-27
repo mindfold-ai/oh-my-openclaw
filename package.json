@@ -13,9 +13,9 @@
 		"typecheck": "tsc --noEmit",
 		"test": "bash scripts/test.sh",
 		"prerelease": "pnpm typecheck && pnpm check",
-		"release": "pnpm prerelease && npm version patch && pnpm format && git add -A && git commit --amend --no-edit && git push && git push --tags",
-		"release:minor": "pnpm prerelease && npm version minor && pnpm format && git add -A && git commit --amend --no-edit && git push && git push --tags",
-		"release:major": "pnpm prerelease && npm version major && pnpm format && git add -A && git commit --amend --no-edit && git push && git push --tags",
+		"release": "pnpm prerelease && npm version patch && pnpm format && git add -A && git commit --amend --no-edit && git push && git push --tags && npm publish --access public",
+		"release:minor": "pnpm prerelease && npm version minor && pnpm format && git add -A && git commit --amend --no-edit && git push && git push --tags && npm publish --access public",
+		"release:major": "pnpm prerelease && npm version major && pnpm format && git add -A && git commit --amend --no-edit && git push && git push --tags && npm publish --access public",
 		"publish:npm": "npm publish --access public"
 	},
 	"peerDependencies": {
