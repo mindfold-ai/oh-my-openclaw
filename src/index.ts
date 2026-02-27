@@ -12,6 +12,7 @@ type SessionSnapshot = {
 };
 
 const sessionCache = new Map<string, SessionSnapshot>();
+let resolvedWorkspaceDir: string | undefined;
 
 const pluginRoot = path.resolve(path.dirname(new URL(import.meta.url).pathname), "..");
 
@@ -138,6 +139,8 @@ const plugin = {
 
 		// Hook 1: inject assignment context
 		api.on("before_prompt_build", async (_event, ctx) => {
+			if (ctx.workspaceDir) resolvedWorkspaceDir = ctx.workspaceDir;
+
 			const agentId = (ctx.agentId ?? "").trim();
 			if (!agentId) return undefined;
 
@@ -210,7 +213,7 @@ const plugin = {
 					}
 				}
 
-				const workspaceDir = process.cwd();
+				const workspaceDir = resolvedWorkspaceDir || process.cwd();
 				const handbookDir = pluginCfg.handbookDir || path.join(workspaceDir, "handbook");
 				const feedbackDir = pluginCfg.feedbackDir || path.join(handbookDir, "feedback");
 				fs.mkdirSync(feedbackDir, { recursive: true });
