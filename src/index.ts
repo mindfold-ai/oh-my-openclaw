@@ -13,6 +13,32 @@ type SessionSnapshot = {
 
 const sessionCache = new Map<string, SessionSnapshot>();
 
+const pluginRoot = path.resolve(path.dirname(new URL(import.meta.url).pathname), "..");
+
+function installScripts(workspaceDir: string) {
+	const src = path.join(pluginRoot, "scripts", "task-kit");
+	if (!fs.existsSync(src)) return;
+
+	const dest = path.join(workspaceDir, "scripts", "task-kit");
+
+	// Already linked correctly
+	try {
+		if (fs.realpathSync(dest) === fs.realpathSync(src)) return;
+	} catch {
+		// dest doesn't exist or is a broken symlink
+	}
+
+	// Remove broken symlink if present
+	try {
+		fs.unlinkSync(dest);
+	} catch {
+		// didn't exist
+	}
+
+	fs.mkdirSync(path.join(workspaceDir, "scripts"), { recursive: true });
+	fs.symlinkSync(src, dest, "dir");
+}
+
 function extractTextContent(content: unknown): string {
 	if (typeof content === "string") return content;
 	if (Array.isArray(content)) {
@@ -112,8 +138,15 @@ const plugin = {
 			maxContextMessages?: number;
 		};
 
-		// Hook 1: inject assignment context
+		// Hook 1: inject assignment context + install scripts on first call
 		api.on("before_prompt_build", async (_event, ctx) => {
+			const workspaceDir = ctx.workspaceDir || process.cwd();
+			try {
+				installScripts(workspaceDir);
+			} catch (err) {
+				api.logger.warn?.(`[oh-my-openclaw] failed to install scripts: ${err}`);
+			}
+
 			const agentId = (ctx.agentId ?? "").trim();
 			if (!agentId) return undefined;
 
@@ -124,7 +157,6 @@ const plugin = {
 				return undefined;
 			}
 
-			const workspaceDir = ctx.workspaceDir || process.cwd();
 			const handbookDir = pluginCfg.handbookDir || path.join(workspaceDir, "handbook");
 			const assignmentsDir =
 				pluginCfg.assignmentsDir || path.join(handbookDir, "inbox", "assignments");
