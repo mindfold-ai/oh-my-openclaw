@@ -1,6 +1,6 @@
 {
 	"name": "@mindfoldhq/oh-my-openclaw",
-	"version": "0.1.6",
+	"version": "0.1.7",
 	"type": "module",
 	"description": "Better multi-agent collaboration and OpenClaw workflows.",
 	"repository": {
@@ -8,9 +8,16 @@
 		"url": "https://github.com/mindfold-ai/oh-my-openclaw.git"
 	},
 	"license": "AGPL-3.0",
-	"files": ["src", "scripts/task-kit", "openclaw.plugin.json", "templates"],
+	"files": [
+		"src",
+		"scripts/task-kit",
+		"openclaw.plugin.json",
+		"templates"
+	],
 	"openclaw": {
-		"extensions": ["./src/index.ts"]
+		"extensions": [
+			"./src/index.ts"
+		]
 	},
 	"scripts": {
 		"check": "biome check .",
