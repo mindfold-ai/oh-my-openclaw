@@ -1,0 +1,13 @@
+{"file": ".trellis/workflow.md", "reason": "Project workflow and conventions"}
+{"file": ".trellis/spec/backend/index.md", "reason": "Backend development guide"}
+{"file": ".trellis/spec/frontend/index.md", "reason": "Frontend development guide"}
+{"file": ".trellis/spec/backend/directory-structure.md", "reason": "Script naming convention and skeleton pattern"}
+{"file": ".trellis/spec/backend/error-handling.md", "reason": "SystemExit pattern for user-facing errors"}
+{"file": ".trellis/spec/backend/quality-guidelines.md", "reason": "Required patterns: main->int, frontmatter parser, --root param"}
+{"file": ".trellis/spec/frontend/type-safety.md", "reason": "TypeScript type patterns for plugin dedup"}
+{"file": ".trellis/spec/frontend/quality-guidelines.md", "reason": "Plugin structure and forbidden patterns"}
+{"file": "packages/task-kit/scripts/task_create.py", "reason": "Reference pattern for new scripts (argparse, pathlib, main->int)"}
+{"file": "packages/task-kit/scripts/task_info.py", "reason": "parse_frontmatter() source - to extract into _common.py"}
+{"file": "packages/task-kit/scripts/assignment_create.py", "reason": "Assignment frontmatter format reference"}
+{"file": "packages/ohmyopenclaw-inbox-assistant/index.ts", "reason": "Plugin to modify: add dedup guard"}
+{"file": "tests/test_task_kit.py", "reason": "Existing test pattern: subprocess + tmpdir + --root override"}

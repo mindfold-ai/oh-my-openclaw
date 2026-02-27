@@ -1,0 +1,11 @@
+{
+	"compilerOptions": {
+		"strict": true,
+		"module": "NodeNext",
+		"moduleResolution": "NodeNext",
+		"target": "es2023",
+		"noEmit": true,
+		"skipLibCheck": true
+	},
+	"include": ["src"]
+}

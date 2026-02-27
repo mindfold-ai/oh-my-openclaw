@@ -1,0 +1,25 @@
+{
+	"name": "@ohmyopenclaw/inbox-assistant-plugin",
+	"version": "0.1.0",
+	"private": true,
+	"type": "module",
+	"description": "Inject assigned inbox task context into target OpenClaw agents",
+	"openclaw": {
+		"extensions": ["./src/index.ts"]
+	},
+	"scripts": {
+		"check": "biome check .",
+		"lint": "biome lint .",
+		"format": "biome format --write .",
+		"typecheck": "tsc --noEmit",
+		"test": "bash scripts/test.sh"
+	},
+	"peerDependencies": {
+		"openclaw": ">=2026"
+	},
+	"devDependencies": {
+		"@biomejs/biome": "^1",
+		"openclaw": "latest",
+		"typescript": "^5"
+	}
+}

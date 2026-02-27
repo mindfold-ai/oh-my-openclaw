@@ -1,0 +1,10 @@
+{"file": ".claude/commands/trellis/finish-work.md", "reason": "Finish work checklist"}
+{"file": ".claude/commands/trellis/check-backend.md", "reason": "Backend check spec"}
+{"file": ".claude/commands/trellis/check-frontend.md", "reason": "Frontend check spec"}
+{"file": ".trellis/spec/backend/quality-guidelines.md", "reason": "Code review checklist: pathlib, --root, SystemExit, no 3rd-party"}
+{"file": ".trellis/spec/backend/error-handling.md", "reason": "Error pattern validation: SystemExit, exit codes"}
+{"file": ".trellis/spec/frontend/quality-guidelines.md", "reason": "Plugin code review checklist"}
+{"file": ".trellis/spec/frontend/type-safety.md", "reason": "No any, no double assertion"}
+{"file": ".trellis/spec/guides/cross-layer-thinking-guide.md", "reason": "Cross-layer boundary checks: Python frontmatter ↔ TS parser"}
+{"file": "packages/task-kit/scripts/task_create.py", "reason": "Verify new scripts match existing skeleton pattern"}
+{"file": "tests/test_task_kit.py", "reason": "Verify test conventions match existing pattern"}

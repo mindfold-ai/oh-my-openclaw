@@ -1,0 +1,41 @@
+{
+  "id": "task-kit-phase2",
+  "name": "task-kit-phase2",
+  "title": "Task-Kit Phase 2: CRUD + Status Flow + Dedup + E2E",
+  "description": "",
+  "status": "planning",
+  "dev_type": null,
+  "scope": "task-kit",
+  "priority": "P2",
+  "creator": "taosu",
+  "assignee": "taosu",
+  "createdAt": "2026-02-26",
+  "completedAt": null,
+  "branch": "feature/task-kit-phase2",
+  "base_branch": "main",
+  "worktree_path": null,
+  "current_phase": 0,
+  "next_action": [
+    {
+      "phase": 1,
+      "action": "implement"
+    },
+    {
+      "phase": 2,
+      "action": "check"
+    },
+    {
+      "phase": 3,
+      "action": "finish"
+    },
+    {
+      "phase": 4,
+      "action": "create-pr"
+    }
+  ],
+  "commit": null,
+  "pr_url": null,
+  "subtasks": [],
+  "relatedFiles": [],
+  "notes": ""
+}
