@@ -1,6 +1,6 @@
 {
 	"name": "@mindfoldhq/oh-my-openclaw",
-	"version": "0.1.6",
+	"version": "0.1.7",
 	"type": "module",
 	"description": "Better multi-agent collaboration and OpenClaw workflows.",
 	"repository": {
