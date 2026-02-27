@@ -15,28 +15,19 @@ const sessionCache = new Map<string, SessionSnapshot>();
 
 const pluginRoot = path.resolve(path.dirname(new URL(import.meta.url).pathname), "..");
 
-function installScripts(workspaceDir: string) {
-	const src = path.join(pluginRoot, "scripts", "task-kit");
-	if (!fs.existsSync(src)) return;
+function installScripts(handbookDir: string) {
+	const srcDir = path.join(pluginRoot, "scripts", "task-kit");
+	if (!fs.existsSync(srcDir)) return;
 
-	const dest = path.join(workspaceDir, "scripts", "task-kit");
+	const destDir = path.join(handbookDir, "scripts", "task-kit");
+	fs.mkdirSync(destDir, { recursive: true });
 
-	// Already linked correctly
-	try {
-		if (fs.realpathSync(dest) === fs.realpathSync(src)) return;
-	} catch {
-		// dest doesn't exist or is a broken symlink
+	for (const file of fs.readdirSync(srcDir)) {
+		const src = path.join(srcDir, file);
+		const dest = path.join(destDir, file);
+		if (fs.existsSync(dest)) continue;
+		fs.copyFileSync(src, dest);
 	}
-
-	// Remove broken symlink if present
-	try {
-		fs.unlinkSync(dest);
-	} catch {
-		// didn't exist
-	}
-
-	fs.mkdirSync(path.join(workspaceDir, "scripts"), { recursive: true });
-	fs.symlinkSync(src, dest, "dir");
 }
 
 function extractTextContent(content: unknown): string {
@@ -141,8 +132,10 @@ const plugin = {
 		// Hook 1: inject assignment context + install scripts on first call
 		api.on("before_prompt_build", async (_event, ctx) => {
 			const workspaceDir = ctx.workspaceDir || process.cwd();
+			const handbookDir = pluginCfg.handbookDir || path.join(workspaceDir, "handbook");
+
 			try {
-				installScripts(workspaceDir);
+				installScripts(handbookDir);
 			} catch (err) {
 				api.logger.warn?.(`[oh-my-openclaw] failed to install scripts: ${err}`);
 			}
@@ -156,8 +149,6 @@ const plugin = {
 			if (onlyAgents.length > 0 && !onlyAgents.includes(agentId)) {
 				return undefined;
 			}
-
-			const handbookDir = pluginCfg.handbookDir || path.join(workspaceDir, "handbook");
 			const assignmentsDir =
 				pluginCfg.assignmentsDir || path.join(handbookDir, "inbox", "assignments");
 			const maxAssignments = Math.max(1, Math.min(20, Number(pluginCfg.maxAssignments || 3)));
