@@ -8,7 +8,7 @@
 		"url": "https://github.com/mindfold-ai/oh-my-openclaw.git"
 	},
 	"license": "AGPL-3.0",
-	"files": ["src", "openclaw.plugin.json", "templates"],
+	"files": ["src", "scripts/task-kit", "openclaw.plugin.json", "templates"],
 	"openclaw": {
 		"extensions": ["./src/index.ts"]
 	},
