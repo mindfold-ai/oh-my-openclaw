@@ -2,6 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import type { OpenClawPluginApi } from "openclaw/plugin-sdk";
 import { emptyPluginConfigSchema } from "openclaw/plugin-sdk";
+import manifest from "../openclaw.plugin.json" with { type: "json" };
 
 type SessionSnapshot = {
 	agentId: string;
@@ -97,9 +98,9 @@ function formatAssignments(assignments: Assignment[]): string {
 }
 
 const plugin = {
-	id: "ohmyopenclaw-inbox-assistant",
-	name: "Oh My OpenClaw Inbox Assistant",
-	description: "Inject assigned inbox tasks into agent prompt context",
+	id: manifest.id,
+	name: manifest.name,
+	description: manifest.description,
 	configSchema: emptyPluginConfigSchema(),
 	register(api: OpenClawPluginApi) {
 		const pluginCfg = (api.pluginConfig ?? {}) as {

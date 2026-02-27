@@ -1,7 +1,7 @@
 {
-	"id": "ohmyopenclaw-inbox-assistant",
-	"name": "Oh My OpenClaw Inbox Assistant",
-	"description": "Reads handbook inbox assignments and injects context into assigned agents.",
+	"id": "oh-my-openclaw",
+	"name": "Oh My OpenClaw",
+	"description": "Better multi-agent collaboration and OpenClaw workflows.",
 	"configSchema": {
 		"type": "object",
 		"additionalProperties": false,

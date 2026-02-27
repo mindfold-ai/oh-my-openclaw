@@ -2,7 +2,7 @@
 	"name": "@mindfoldhq/oh-my-openclaw",
 	"version": "0.1.5",
 	"type": "module",
-	"description": "Inject assigned inbox task context into target OpenClaw agents",
+	"description": "Better multi-agent collaboration and OpenClaw workflows.",
 	"repository": {
 		"type": "git",
 		"url": "https://github.com/mindfold-ai/oh-my-openclaw.git"
