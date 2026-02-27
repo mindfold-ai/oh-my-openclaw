@@ -3,6 +3,12 @@
 	"version": "0.1.4",
 	"type": "module",
 	"description": "Inject assigned inbox task context into target OpenClaw agents",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/mindfold-ai/oh-my-openclaw.git"
+	},
+	"license": "MIT",
+	"files": ["src", "openclaw.plugin.json", "templates"],
 	"openclaw": {
 		"extensions": ["./src/index.ts"]
 	},
