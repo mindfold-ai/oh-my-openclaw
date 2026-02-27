@@ -129,17 +129,15 @@ const plugin = {
 			maxContextMessages?: number;
 		};
 
-		// Hook 1: inject assignment context + install scripts on first call
+		const defaultHandbookDir = pluginCfg.handbookDir || path.join(process.cwd(), "handbook");
+		try {
+			installScripts(defaultHandbookDir);
+		} catch (err) {
+			api.logger.warn?.(`[oh-my-openclaw] failed to install scripts: ${err}`);
+		}
+
+		// Hook 1: inject assignment context
 		api.on("before_prompt_build", async (_event, ctx) => {
-			const workspaceDir = ctx.workspaceDir || process.cwd();
-			const handbookDir = pluginCfg.handbookDir || path.join(workspaceDir, "handbook");
-
-			try {
-				installScripts(handbookDir);
-			} catch (err) {
-				api.logger.warn?.(`[oh-my-openclaw] failed to install scripts: ${err}`);
-			}
-
 			const agentId = (ctx.agentId ?? "").trim();
 			if (!agentId) return undefined;
 
@@ -149,6 +147,8 @@ const plugin = {
 			if (onlyAgents.length > 0 && !onlyAgents.includes(agentId)) {
 				return undefined;
 			}
+			const workspaceDir = ctx.workspaceDir || process.cwd();
+			const handbookDir = pluginCfg.handbookDir || path.join(workspaceDir, "handbook");
 			const assignmentsDir =
 				pluginCfg.assignmentsDir || path.join(handbookDir, "inbox", "assignments");
 			const maxAssignments = Math.max(1, Math.min(20, Number(pluginCfg.maxAssignments || 3)));
