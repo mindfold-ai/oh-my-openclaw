@@ -1,10 +1,12 @@
 {
 	"name": "@mindfoldhq/oh-my-openclaw",
-	"version": "0.1.2",
+	"version": "0.1.3",
 	"type": "module",
 	"description": "Inject assigned inbox task context into target OpenClaw agents",
 	"openclaw": {
-		"extensions": ["./src/index.ts"]
+		"extensions": [
+			"./src/index.ts"
+		]
 	},
 	"scripts": {
 		"check": "biome check .",
