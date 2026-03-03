@@ -16,6 +16,14 @@ let resolvedWorkspaceDir: string | undefined;
 
 const pluginRoot = path.resolve(path.dirname(new URL(import.meta.url).pathname), "..");
 
+/**
+ * Resolve the canonical handbook directory.
+ * Priority: pluginCfg.handbookDir (checked by caller) > workspaceDir/handbook > cwd/handbook
+ */
+function resolveHandbookDir(fallback?: string): string {
+	return fallback || path.join(process.cwd(), "handbook");
+}
+
 function installScripts(handbookDir: string) {
 	const srcDir = path.join(pluginRoot, "scripts", "task-kit");
 	if (!fs.existsSync(srcDir)) return;
@@ -45,6 +53,8 @@ function extractTextContent(content: unknown): string {
 	return "";
 }
 
+const PRIORITY_ORDER: Record<string, number> = { high: 0, normal: 1, low: 2 };
+
 type Assignment = {
 	id: string;
 	to: string;
@@ -54,21 +64,22 @@ type Assignment = {
 	priority?: string;
 	status?: string;
 	summary?: string;
+	body?: string;
 	filePath: string;
 };
 
-function parseFrontmatter(raw: string): Record<string, string> {
-	const m = raw.match(/^---\n([\s\S]*?)\n---\n?/);
-	if (!m) return {};
-	const out: Record<string, string> = {};
+function parseFrontmatter(raw: string): { fields: Record<string, string>; body: string } {
+	const m = raw.match(/^---\n([\s\S]*?)\n---\n?([\s\S]*)/);
+	if (!m) return { fields: {}, body: raw.trim() };
+	const fields: Record<string, string> = {};
 	for (const line of m[1].split("\n")) {
 		const idx = line.indexOf(":");
 		if (idx <= 0) continue;
 		const k = line.slice(0, idx).trim();
 		const v = line.slice(idx + 1).trim();
-		if (k) out[k] = v;
+		if (k) fields[k] = v;
 	}
-	return out;
+	return { fields, body: (m[2] ?? "").trim() };
 }
 
 function loadAssignments(assignmentsDir: string): Assignment[] {
@@ -83,7 +94,7 @@ function loadAssignments(assignmentsDir: string): Assignment[] {
 		const filePath = path.join(assignmentsDir, f);
 		try {
 			const raw = fs.readFileSync(filePath, "utf-8");
-			const fm = parseFrontmatter(raw);
+			const { fields: fm, body } = parseFrontmatter(raw);
 			result.push({
 				id: fm.id || path.basename(f, ".md"),
 				to: fm.to || "",
@@ -93,6 +104,7 @@ function loadAssignments(assignmentsDir: string): Assignment[] {
 				priority: fm.priority,
 				status: fm.status || "assigned",
 				summary: fm.summary,
+				body: body || undefined,
 				filePath,
 			});
 		} catch {
@@ -102,17 +114,74 @@ function loadAssignments(assignmentsDir: string): Assignment[] {
 	return result;
 }
 
-function formatAssignments(assignments: Assignment[]): string {
-	const lines = ["[Inbox Assignments]"];
-	for (const a of assignments) {
-		lines.push(
-			`- id=${a.id} | from=${a.from ?? "unknown"} | project=${a.project ?? ""} | priority=${a.priority ?? "normal"}`,
-		);
-		if (a.task_path) lines.push(`  task_path: ${a.task_path}`);
-		if (a.summary) lines.push(`  summary: ${a.summary}`);
+function loadTaskContent(taskPath: string, handbookDir: string): string | undefined {
+	// task_path may be relative to handbook root or absolute
+	const resolved = path.isAbsolute(taskPath) ? taskPath : path.join(handbookDir, taskPath);
+	try {
+		if (!fs.existsSync(resolved)) return undefined;
+		const raw = fs.readFileSync(resolved, "utf-8");
+		// Strip frontmatter, return body only
+		return raw.replace(/^---\n[\s\S]*?\n---\n?/, "").trim() || undefined;
+	} catch {
+		return undefined;
 	}
-	lines.push("Use these assignments as high-priority execution context.");
-	return lines.join("\n");
+}
+
+function formatAssignments(assignments: Assignment[], handbookDir: string): string {
+	const sections = ["[Inbox Assignments]"];
+	for (const a of assignments) {
+		const isHigh = a.priority === "high";
+		const tag = isHigh ? "[!HIGH] " : "";
+		const header = `### ${tag}${a.id} (from=${a.from ?? "unknown"} | project=${a.project ?? ""} | priority=${a.priority ?? "normal"})`;
+		const lines = [header];
+		if (a.summary) lines.push(`**Summary**: ${a.summary}`);
+
+		// Include assignment body (## Context / ## Acceptance etc.)
+		if (a.body) lines.push("", a.body);
+
+		// Include linked task.md content
+		if (a.task_path) {
+			const taskContent = loadTaskContent(a.task_path, handbookDir);
+			if (taskContent) {
+				lines.push("", "#### Linked Task Detail", "", taskContent);
+			}
+		}
+
+		sections.push(lines.join("\n"));
+	}
+	sections.push("\nUse these assignments as high-priority execution context.");
+	return sections.join("\n\n");
+}
+
+/** Frontmatter keys surfaced in the injected project context header. */
+const PROJECT_META_KEYS = ["source", "repo", "npm", "linear_team", "github_org"] as const;
+
+function loadProjectContexts(handbookDir: string, projectSlugs: Set<string>): string | undefined {
+	if (projectSlugs.size === 0) return undefined;
+	const projectsDir = path.join(handbookDir, "projects");
+	if (!fs.existsSync(projectsDir)) return undefined;
+
+	const sections: string[] = [];
+	for (const proj of projectSlugs) {
+		const contextPath = path.join(projectsDir, proj, "context.md");
+		if (!fs.existsSync(contextPath)) continue;
+		try {
+			const raw = fs.readFileSync(contextPath, "utf-8");
+			const { fields, body } = parseFrontmatter(raw);
+
+			// Surface key metadata so agents know where the project lives.
+			const meta = PROJECT_META_KEYS.filter((k) => fields[k])
+				.map((k) => `${k}: ${fields[k]}`)
+				.join(" | ");
+			const header = meta ? `[Project: ${proj}] (${meta})` : `[Project: ${proj}]`;
+
+			if (body) sections.push(`${header}\n${body}`);
+		} catch {
+			// Ignore read errors.
+		}
+	}
+
+	return sections.length > 0 ? sections.join("\n\n") : undefined;
 }
 
 const plugin = {
@@ -130,7 +199,7 @@ const plugin = {
 			maxContextMessages?: number;
 		};
 
-		const defaultHandbookDir = pluginCfg.handbookDir || path.join(process.cwd(), "handbook");
+		const defaultHandbookDir = pluginCfg.handbookDir || resolveHandbookDir();
 		try {
 			installScripts(defaultHandbookDir);
 		} catch (err) {
@@ -150,21 +219,35 @@ const plugin = {
 			if (onlyAgents.length > 0 && !onlyAgents.includes(agentId)) {
 				return undefined;
 			}
-			const workspaceDir = ctx.workspaceDir || process.cwd();
-			const handbookDir = pluginCfg.handbookDir || path.join(workspaceDir, "handbook");
+			const handbookDir = pluginCfg.handbookDir || resolveHandbookDir(ctx.workspaceDir ? path.join(ctx.workspaceDir, "handbook") : undefined);
 			const assignmentsDir =
 				pluginCfg.assignmentsDir || path.join(handbookDir, "inbox", "assignments");
-			const maxAssignments = Math.max(1, Math.min(20, Number(pluginCfg.maxAssignments || 3)));
+			const maxAssignments = Math.max(1, Math.min(50, Number(pluginCfg.maxAssignments || 10)));
 
 			const assignments = loadAssignments(assignmentsDir)
 				.filter((a) => a.to === agentId && (a.status ?? "assigned") === "assigned")
+				.sort((a, b) =>
+					(PRIORITY_ORDER[a.priority ?? "normal"] ?? 1) -
+					(PRIORITY_ORDER[b.priority ?? "normal"] ?? 1)
+				)
 				.slice(0, maxAssignments);
 
-			if (assignments.length === 0) return undefined;
+			// Collect project slugs from this agent's assignments for filtered context loading
+			const projectSlugs = new Set<string>();
+			for (const a of assignments) {
+				if (a.project) projectSlugs.add(a.project);
+			}
 
-			const prependContext = formatAssignments(assignments);
+			const parts: string[] = [];
+			const projectContext = loadProjectContexts(handbookDir, projectSlugs);
+			if (projectContext) parts.push(projectContext);
+			if (assignments.length > 0) parts.push(formatAssignments(assignments, handbookDir));
+
+			if (parts.length === 0) return undefined;
+
+			const prependContext = parts.join("\n\n");
 			api.logger.info?.(
-				`[inbox-assistant] injected ${assignments.length} assignment(s) for agent=${agentId}`,
+				`[inbox-assistant] injected context for agent=${agentId}: ${assignments.length} assignment(s), projects=${projectContext ? "yes" : "no"}`,
 			);
 			return { prependContext };
 		});
