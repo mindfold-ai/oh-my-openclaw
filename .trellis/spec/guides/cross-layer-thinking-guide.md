@@ -34,6 +34,10 @@ For each arrow, ask:
 
 | Boundary | Common Issues |
 |----------|---------------|
+| Plugin (TS) ↔ Handbook (filesystem) | Path resolution, missing dirs, stale data |
+| Script (Python) ↔ External CLI (`gh`, `linearis`) | CLI missing, auth expired, JSON schema changes |
+| Script ↔ Frontmatter (markdown) | Field name mismatches, missing required fields |
+| Plugin source ↔ Handbook copy (dual-copy) | Copies out of sync after update |
 | API ↔ Service | Type mismatches, missing fields |
 | Service ↔ Database | Format conversions, null handling |
 | Backend ↔ Frontend | Serialization, date formats |
@@ -67,6 +71,18 @@ For each boundary:
 **Bad**: Component knows about database schema
 
 **Good**: Each layer only knows its neighbors
+
+### Mistake 4: Path Resolution Drift
+
+**Bad**: Plugin resolves handbook path via sibling detection (`../handbook`), scripts hardcode different defaults
+
+**Good**: Single source of truth — `openclaw.json` config → plugin → all scripts use `--root` parameter
+
+### Mistake 5: Dual-Copy Divergence
+
+**Bad**: Updating only the plugin copy of a script, forgetting the handbook runtime copy
+
+**Good**: Always update both. Add "dual-copy sync" to your code review checklist.
 
 ---
 

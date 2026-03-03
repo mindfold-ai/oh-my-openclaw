@@ -59,6 +59,46 @@ def parse_frontmatter(path: pathlib.Path) -> dict[str, str]:
 
 ---
 
+## Dual-Copy Sync Convention
+
+Scripts exist in **two locations** that must stay in sync:
+
+| Copy | Path | Purpose |
+|------|------|---------|
+| Plugin source (canonical) | `ohmyopenclaw/scripts/task-kit/` | Distribution; version-controlled |
+| Handbook runtime | `~/.openclaw/workspace/handbook/scripts/task-kit/` | What agents execute at runtime |
+
+`installScripts()` in `src/index.ts` copies plugin → handbook on startup, but **skips existing files** (no overwrite). When updating a script, you must update **both** copies manually.
+
+---
+
+## External CLI Dependencies
+
+Scripts may shell out to external CLIs (`gh`, `linearis`). Follow these rules:
+
+| Rule | Rationale |
+|------|-----------|
+| Define CLI path as a module-level constant | Easy to locate and change |
+| Check existence before calling | Graceful skip if not installed |
+| Use `subprocess.run(capture_output=True)` | Never let raw stderr leak to stdout |
+| Parse JSON output (`--json` flag) | Structured data, not fragile text parsing |
+| Isolate in a dedicated function | Other phases proceed on failure |
+
+```python
+GH_CLI = pathlib.Path("/opt/homebrew/bin/gh")
+
+def _gh_run(args: list[str]) -> dict | list | None:
+    if not GH_CLI.exists():
+        return None
+    r = subprocess.run([str(GH_CLI)] + args, capture_output=True, text=True, timeout=30)
+    if r.returncode != 0:
+        print(f"[warn] gh {args[0]} failed: {r.stderr.strip()}", file=sys.stderr)
+        return None
+    return json.loads(r.stdout)
+```
+
+---
+
 ## Forbidden Patterns
 
 | Pattern | Why |
@@ -68,6 +108,7 @@ def parse_frontmatter(path: pathlib.Path) -> dict[str, str]:
 | Hardcoded absolute paths in logic | Must accept `--root` parameter |
 | `yaml.safe_load()` | No YAML library — use regex frontmatter parser |
 | Modifying live OpenClaw config | Scripts must be side-effect free on config |
+| Crashing on missing external CLI | Must degrade gracefully (warn + skip) |
 
 ---
 
@@ -105,5 +146,7 @@ python3 -m unittest discover -s tests -p 'test_*.py' -v
 - [ ] `from __future__ import annotations` at top
 - [ ] Errors via `raise SystemExit(msg)`, not `print()`
 - [ ] No third-party imports
+- [ ] External CLI calls have existence check + graceful fallback
+- [ ] Both plugin copy and handbook copy updated (dual-copy sync)
 - [ ] Test added/updated in `tests/test_task_kit.py`
 - [ ] `bash scripts/test.sh` passes

@@ -42,6 +42,33 @@ if not task_file.exists():
     raise SystemExit(f"task not found: {target}")
 ```
 
+### External CLI Dependencies (Graceful Degradation)
+
+When a script depends on an external CLI tool (`gh`, `linearis`, etc.), **never crash** if the tool is missing or fails. Print a warning and skip that phase:
+
+```python
+GH_CLI = pathlib.Path("/opt/homebrew/bin/gh")
+
+def _sync_github(root: pathlib.Path, dry_run: bool) -> None:
+    if not GH_CLI.exists():
+        print("[github-scan] gh CLI not found – skipping GitHub scan", file=sys.stderr)
+        return
+    # ... proceed with scan ...
+```
+
+Key rules:
+- Check CLI existence at the start of the function, not at import time
+- Use `subprocess.run(..., capture_output=True)` and check `returncode`
+- On failure, print warning to stderr and `return` — don't `raise SystemExit`
+- Other phases (e.g., Linear sync) must not be blocked by GitHub scan failure
+
+```python
+# From inbox_manage.py — each sync phase runs independently
+def cmd_sync(root, dry_run, agent):
+    _sync_github(root, dry_run)      # Phase 1: GitHub (skips on error)
+    _sync_linear(root, dry_run)      # Phase 2: Linear (runs regardless)
+```
+
 ---
 
 ## Return Codes
@@ -70,3 +97,4 @@ if not task_file.exists():
 1. **Printing error to stdout** — downstream tools may parse stdout as a file path
 2. **Catching too broadly** — if a script crashes with an unexpected error, let it show the traceback
 3. **Not checking path existence before operating** — always validate inputs
+4. **Letting an optional phase crash the whole script** — external CLI failures must be isolated; use try/except + warning, not bare calls
