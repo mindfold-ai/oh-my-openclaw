@@ -22,8 +22,7 @@ These guides help you **ask the right questions before coding**.
 | Guide | Purpose | When to Use |
 |-------|---------|-------------|
 | [Code Reuse Thinking Guide](./code-reuse-thinking-guide.md) | Identify patterns and reduce duplication | When you notice repeated patterns |
-| [Cross-Layer Thinking Guide](./cross-layer-thinking-guide.md) | Think through data flow across layers | Features spanning multiple layers |
-| [Cross-Platform Thinking Guide](./cross-platform-thinking-guide.md) | Catch platform-specific assumptions | Scripts, paths, commands |
+| [Cross-Layer Thinking Guide](./cross-layer-thinking-guide.md) | Think through data flow across layers | Features spanning plugin ↔ handbook ↔ scripts |
 
 ---
 
@@ -31,10 +30,10 @@ These guides help you **ask the right questions before coding**.
 
 ### When to Think About Cross-Layer Issues
 
-- [ ] Feature touches 3+ layers (API, Service, Component, Database)
-- [ ] Data format changes between layers
+- [ ] Feature touches plugin (TS) + scripts (Python) + handbook (filesystem)
+- [ ] Data format changes between layers (frontmatter ↔ Assignment type ↔ prompt)
 - [ ] Multiple consumers need the same data
-- [ ] You're not sure where to put some logic
+- [ ] You're shelling out to an external CLI (`gh`, `linearis`)
 
 → Read [Cross-Layer Thinking Guide](./cross-layer-thinking-guide.md)
 
@@ -47,15 +46,6 @@ These guides help you **ask the right questions before coding**.
 - [ ] **You're creating a new utility/helper function** ← Search first!
 
 → Read [Code Reuse Thinking Guide](./code-reuse-thinking-guide.md)
-
-### When to Think About Cross-Platform Issues
-
-- [ ] Writing scripts that users will run directly
-- [ ] Adding usage examples or help text
-- [ ] Working with file paths or commands
-- [ ] **Migrating from shell scripts to Python**
-
-→ Read [Cross-Platform Thinking Guide](./cross-platform-thinking-guide.md)
 
 ---
 

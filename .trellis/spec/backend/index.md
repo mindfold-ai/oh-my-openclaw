@@ -37,7 +37,7 @@ There is no web server, no database, and no third-party Python dependencies.
 - **Filesystem**: `pathlib.Path` everywhere
 - **Tests**: `bash scripts/test.sh` (Python `unittest`)
 - **Data format**: Markdown files with YAML-style frontmatter (regex-parsed)
-- **External CLIs**: `gh` (GitHub), `linearis` (Linear) — always check existence before use
+- **External CLIs**: `gh` (`/opt/homebrew/bin/gh`), `linearis` (`~/.bun/bin/linearis`) — always check existence before use
 - **Dual-copy**: Scripts live in plugin source AND handbook; both must stay in sync
 
 ### TypeScript Plugin (`src/index.ts`)
@@ -50,4 +50,4 @@ There is no web server, no database, and no third-party Python dependencies.
 - **Dependencies**: Zero runtime deps; `openclaw` as peer dependency
 - **Hooks**: `before_prompt_build` × 2 (assignment injection + message cache)
 - **Commands**: `/fb` (feedback with conversation context)
-- **Config**: `openclaw.json` → `oh-my-openclaw.config` (see [Plugin Architecture](./plugin-architecture.md))
+- **Config**: `openclaw.json` → `plugins.entries["oh-my-openclaw"].config` (see [Plugin Architecture](./plugin-architecture.md))

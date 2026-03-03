@@ -64,9 +64,11 @@ Key rules:
 
 ```python
 # From inbox_manage.py — each sync phase runs independently
-def cmd_sync(root, dry_run, agent):
-    _sync_github(root, dry_run)      # Phase 1: GitHub (skips on error)
-    _sync_linear(root, dry_run)      # Phase 2: Linear (runs regardless)
+def cmd_sync(args: argparse.Namespace) -> int:
+    root = pathlib.Path(args.root)
+    _sync_github(root, args.dry_run)   # Phase 1: GitHub (skips on error)
+    # Phase 2: Linear sync (inline logic, also skips on error)
+    ...
 ```
 
 ---

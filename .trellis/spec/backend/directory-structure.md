@@ -33,15 +33,13 @@ scripts/
 tests/
 └── test_task_kit.py               # Unit tests for all task-kit scripts
 
-templates/
-└── assignment-template.md         # Sample assignment frontmatter
 ```
 
 ### Design Decision: Dual-Copy Script Distribution
 
 **Context**: Python scripts live in the plugin source (`ohmyopenclaw/scripts/task-kit/`) AND are copied to the handbook (`handbook/scripts/task-kit/`) by `installScripts()` at plugin startup.
 
-**Decision**: Both copies must stay in sync. The plugin source is the canonical version. `installScripts()` skips files that already exist at the destination — it does NOT overwrite.
+**Decision**: Both copies must stay in sync. The plugin source is the canonical version. On startup, `bootstrapHandbook()` creates the full directory skeleton (`inbox/assignments`, `inbox/archive`, `projects`, `feedback`, `scripts/task-kit`), then `installScripts()` copies scripts — but skips files that already exist at the destination (no overwrite).
 
 **Implication**: When updating a script, you must update **both** copies. The plugin copy is for distribution; the handbook copy is what agents actually execute at runtime.
 
@@ -49,8 +47,12 @@ templates/
 
 ## Handbook Data Layout (Runtime)
 
+The handbook directory is **not** part of the plugin repo — it is created at runtime by `bootstrapHandbook()` or exists at the user's configured `handbookDir`.
+
 Scripts read/write into the handbook directory (canonical: `~/.openclaw/workspace/handbook`).
 Path is set via `handbookDir` in `openclaw.json` plugin config, or resolved from `ctx.workspaceDir`.
+
+When an assignment has a `task_path` field, `loadTaskContent()` reads the linked task.md and inlines its body into the agent prompt alongside the assignment.
 
 ```
 handbook/
@@ -71,9 +73,8 @@ handbook/
 │               └── <task-id>/     # Archived tasks
 ├── scripts/
 │   └── task-kit/                  # CLI scripts (copied from plugin on startup)
-├── feedback/                      # /fb command output
-│   └── <timestamp>.md
-└── config/                        # Agent runtime state (e.g. patrol-state.json)
+└── feedback/                      # /fb command output
+    └── <timestamp>.md
 ```
 
 ---

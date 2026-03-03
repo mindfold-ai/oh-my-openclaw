@@ -50,10 +50,13 @@ def parse_frontmatter(path: pathlib.Path) -> dict[str, str]:
         return {}
     out: dict[str, str] = {}
     for line in m.group(1).splitlines():
-        if ":" not in line:
+        idx = line.find(":")
+        if idx <= 0:
             continue
-        k, v = line.split(":", 1)
-        out[k.strip()] = v.strip()
+        k = line[:idx].strip()
+        v = line[idx + 1:].strip()
+        if k:
+            out[k] = v
     return out
 ```
 
@@ -87,14 +90,19 @@ Scripts may shell out to external CLIs (`gh`, `linearis`). Follow these rules:
 ```python
 GH_CLI = pathlib.Path("/opt/homebrew/bin/gh")
 
-def _gh_run(args: list[str]) -> dict | list | None:
+def _gh_run(args: list[str]) -> subprocess.CompletedProcess[str]:
+    """Low-level gh wrapper. Caller checks returncode and parses stdout."""
+    return subprocess.run(
+        [str(GH_CLI)] + args,
+        capture_output=True, text=True, timeout=30,
+    )
+
+# CLI existence is checked once at the entry point, not in _gh_run:
+def _sync_github(root: pathlib.Path, dry_run: bool) -> None:
     if not GH_CLI.exists():
-        return None
-    r = subprocess.run([str(GH_CLI)] + args, capture_output=True, text=True, timeout=30)
-    if r.returncode != 0:
-        print(f"[warn] gh {args[0]} failed: {r.stderr.strip()}", file=sys.stderr)
-        return None
-    return json.loads(r.stdout)
+        print("[github-scan] gh CLI not found – skipping", file=sys.stderr)
+        return
+    # ... call _gh_run() here ...
 ```
 
 ---
@@ -105,7 +113,7 @@ def _gh_run(args: list[str]) -> dict | list | None:
 |---------|-----|
 | Third-party pip packages | Zero-dependency requirement |
 | `os.path` instead of `pathlib` | Project convention is `pathlib.Path` |
-| Hardcoded absolute paths in logic | Must accept `--root` parameter |
+| Hardcoded absolute paths in logic (except `--root` default) | Must accept `--root` parameter; default value may be hardcoded |
 | `yaml.safe_load()` | No YAML library — use regex frontmatter parser |
 | Modifying live OpenClaw config | Scripts must be side-effect free on config |
 | Crashing on missing external CLI | Must degrade gracefully (warn + skip) |

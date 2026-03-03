@@ -8,10 +8,10 @@
 
 **Most bugs happen at layer boundaries**, not within layers.
 
-Common cross-layer bugs:
-- API returns format A, frontend expects format B
-- Database stores X, service transforms to Y, but loses data
-- Multiple layers implement the same logic differently
+Common cross-layer bugs in this project:
+- Assignment frontmatter field renamed in Python script but not in TS `Assignment` type
+- Plugin resolves handbook path differently than scripts' `--root` default
+- `parseFrontmatter()` implementation differs between TS and Python (edge case divergence)
 
 ---
 
@@ -38,10 +38,7 @@ For each arrow, ask:
 | Script (Python) ↔ External CLI (`gh`, `linearis`) | CLI missing, auth expired, JSON schema changes |
 | Script ↔ Frontmatter (markdown) | Field name mismatches, missing required fields |
 | Plugin source ↔ Handbook copy (dual-copy) | Copies out of sync after update |
-| API ↔ Service | Type mismatches, missing fields |
-| Service ↔ Database | Format conversions, null handling |
-| Backend ↔ Frontend | Serialization, date formats |
-| Component ↔ Component | Props shape changes |
+| Assignment frontmatter ↔ TS `Assignment` type | Field renames not propagated |
 
 ### Step 3: Define Contracts
 

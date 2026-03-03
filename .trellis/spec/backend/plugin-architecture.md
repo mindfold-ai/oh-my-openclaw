@@ -19,9 +19,11 @@ openclaw daemon start
   → loads openclaw.plugin.json (manifest)
   → imports src/index.ts (default export)
   → calls plugin.register(api)
-    → installScripts(handbookDir)       # copy scripts to handbook
-    → api.on("before_prompt_build", …)  # hook 1: inject assignments
-    → api.on("before_prompt_build", …)  # hook 2: cache messages
+    → installScripts(handbookDir)
+      → bootstrapHandbook(handbookDir)     # create directory skeleton
+      → copy scripts/*.py to handbook      # skip existing files
+    → api.on("before_prompt_build", …)     # hook 1: inject assignments
+    → api.on("before_prompt_build", …)     # hook 2: cache messages (no return)
     → api.registerCommand({ name: "fb" })  # /fb command
 ```
 
@@ -47,7 +49,9 @@ Plugin config lives in `openclaw.json` under the plugin's key:
 }
 ```
 
-Schema is defined in `openclaw.plugin.json` → `configSchema`.
+Schema is defined in `openclaw.plugin.json` → `configSchema`. Note: the plugin code exports
+`emptyPluginConfigSchema()` — the OpenClaw framework uses the manifest's schema for validation,
+not the code-exported one.
 
 | Key | Type | Default | Description |
 |-----|------|---------|-------------|
@@ -116,7 +120,10 @@ before_prompt_build fired
   → loadProjectContexts(handbookDir, projectSlugs)
     → read projects/<slug>/context.md for each slug
     → extract frontmatter fields: source, repo, npm, linear_team, github_org
-  → formatAssignments() → markdown block
+  → formatAssignments(assignments, handbookDir)
+    → for each assignment with task_path:
+      → loadTaskContent(task_path) → read task.md, strip frontmatter, inline body
+    → markdown block with [!HIGH] prefix for high-priority items
   → return { prependContext: <combined markdown> }
 ```
 
@@ -163,6 +170,7 @@ type SessionSnapshot = {
 - Filters to `role === "user"` or `role === "assistant"` only
 - Keeps last `maxContextMessages` messages (default 20)
 - Stored in an in-memory `Map<string, SessionSnapshot>` keyed by agentId
+- **No return value** — this hook is a pure side-effect (caching only), it does not modify the prompt
 
 ---
 
@@ -177,7 +185,7 @@ type SessionSnapshot = {
 ```
 /fb "the CTO agent is too verbose"
   → find most recent SessionSnapshot (by updatedAt)
-  → extract text from cached messages
+  → extractTextContent() on each cached message (handles string and content-block arrays)
   → write markdown file to feedbackDir:
       feedback/YYYY-MM-DDTHH-MM.md
       - frontmatter: created_at, agent, session, channel, from
@@ -190,7 +198,23 @@ type SessionSnapshot = {
 
 ## `installScripts()` Behavior
 
-Copies Python scripts from plugin source to handbook on startup.
+First calls `bootstrapHandbook()` to create the full directory skeleton, then copies
+Python scripts from plugin source to handbook.
+
+### `bootstrapHandbook()` creates:
+
+```
+handbook/
+├── inbox/assignments/
+├── inbox/archive/
+├── projects/
+├── feedback/
+└── scripts/task-kit/
+```
+
+All directories use `mkdirSync({ recursive: true })` — existing dirs are unaffected.
+
+### Script copying:
 
 ```
 pluginRoot/scripts/task-kit/*.py  →  handbookDir/scripts/task-kit/*.py
@@ -231,10 +255,11 @@ The plugin maintains two pieces of module-level state:
 
 | Variable | Type | Purpose |
 |----------|------|---------|
+| `pluginRoot` | `string` | Resolved from `import.meta.url`; used to find `scripts/task-kit/` for copying |
 | `sessionCache` | `Map<string, SessionSnapshot>` | Message cache for `/fb` command |
 | `resolvedWorkspaceDir` | `string \| undefined` | Captured from first `before_prompt_build` event |
 
-Both are in-memory only — they reset when the daemon restarts.
+All are in-memory only — they reset when the daemon restarts.
 
 ---
 
@@ -265,7 +290,10 @@ Both are in-memory only — they reset when the daemon restarts.
 
 ## Examples
 
-- Hook registration: `src/index.ts:210` → `api.on("before_prompt_build", ...)`
-- Command registration: `src/index.ts:277` → `api.registerCommand({ name: "fb", ... })`
-- Path resolution: `src/index.ts:23` → `resolveHandbookDir()`
-- Script distribution: `src/index.ts:27` → `installScripts()`
+- Hook registration: search `api.on("before_prompt_build"` in `src/index.ts`
+- Command registration: search `api.registerCommand` in `src/index.ts`
+- Path resolution: `resolveHandbookDir()` in `src/index.ts`
+- Directory bootstrap: `bootstrapHandbook()` in `src/index.ts`
+- Script distribution: `installScripts()` in `src/index.ts`
+- Task content loading: `loadTaskContent()` in `src/index.ts`
+- Text extraction: `extractTextContent()` in `src/index.ts` (used by `/fb`)
