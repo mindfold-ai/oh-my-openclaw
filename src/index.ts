@@ -24,13 +24,26 @@ function resolveHandbookDir(fallback?: string): string {
 	return fallback || path.join(process.cwd(), "handbook");
 }
 
+function bootstrapHandbook(handbookDir: string) {
+	const dirs = [
+		"inbox/assignments",
+		"inbox/archive",
+		"projects",
+		"feedback",
+		"scripts/task-kit",
+	];
+	for (const d of dirs) {
+		fs.mkdirSync(path.join(handbookDir, d), { recursive: true });
+	}
+}
+
 function installScripts(handbookDir: string) {
 	const srcDir = path.join(pluginRoot, "scripts", "task-kit");
 	if (!fs.existsSync(srcDir)) return;
 
-	const destDir = path.join(handbookDir, "scripts", "task-kit");
-	fs.mkdirSync(destDir, { recursive: true });
+	bootstrapHandbook(handbookDir);
 
+	const destDir = path.join(handbookDir, "scripts", "task-kit");
 	for (const file of fs.readdirSync(srcDir)) {
 		const src = path.join(srcDir, file);
 		const dest = path.join(destDir, file);

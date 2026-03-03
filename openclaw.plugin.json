@@ -8,7 +8,7 @@
 		"properties": {
 			"handbookDir": { "type": "string" },
 			"assignmentsDir": { "type": "string" },
-			"maxAssignments": { "type": "number", "minimum": 1, "maximum": 20 },
+			"maxAssignments": { "type": "number", "minimum": 1, "maximum": 50 },
 			"onlyAgents": {
 				"type": "array",
 				"items": { "type": "string" }
