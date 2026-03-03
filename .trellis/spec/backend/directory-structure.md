@@ -16,6 +16,7 @@ Python CLI scripts that operate on a filesystem-based handbook directory.
 ```
 scripts/
 └── task-kit/                      # Python CLI scripts (plugin copies to handbook on startup)
+    ├── project_create.py          # Create a project directory + context.md
     ├── task_create.py             # Create a task directory + task.md
     ├── task_archive.py            # Move task to archive/
     ├── task_info.py               # List/show task metadata (JSON or text)
