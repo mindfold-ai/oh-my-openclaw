@@ -1,4 +1,5 @@
 import fs from "node:fs";
+import os from "node:os";
 import path from "node:path";
 import type { OpenClawPluginApi } from "openclaw/plugin-sdk";
 import { emptyPluginConfigSchema } from "openclaw/plugin-sdk";
@@ -18,26 +19,20 @@ const pluginRoot = path.resolve(path.dirname(new URL(import.meta.url).pathname),
 
 /**
  * Resolve the canonical handbook directory.
- * Priority: pluginCfg.handbookDir (checked by caller) > workspaceDir/handbook > cwd/handbook
+ * Priority: pluginCfg.handbookDir (checked by caller) > workspaceDir/handbook > ~/.openclaw/workspace/handbook
  */
 function resolveHandbookDir(fallback?: string): string {
-	return fallback || path.join(process.cwd(), "handbook");
+	return fallback || path.join(os.homedir(), ".openclaw", "workspace", "handbook");
 }
 
 function bootstrapHandbook(handbookDir: string) {
-	const dirs = [
-		"inbox/assignments",
-		"inbox/archive",
-		"projects",
-		"feedback",
-		"scripts/task-kit",
-	];
+	const dirs = ["inbox/assignments", "inbox/archive", "projects", "feedback", "scripts/task-kit"];
 	for (const d of dirs) {
 		fs.mkdirSync(path.join(handbookDir, d), { recursive: true });
 	}
 }
 
-function installScripts(handbookDir: string) {
+function installScripts(handbookDir: string, force = false) {
 	const srcDir = path.join(pluginRoot, "scripts", "task-kit");
 	if (!fs.existsSync(srcDir)) return;
 
@@ -47,7 +42,7 @@ function installScripts(handbookDir: string) {
 	for (const file of fs.readdirSync(srcDir)) {
 		const src = path.join(srcDir, file);
 		const dest = path.join(destDir, file);
-		if (fs.existsSync(dest)) continue;
+		if (!force && fs.existsSync(dest)) continue;
 		fs.copyFileSync(src, dest);
 	}
 }
@@ -219,6 +214,53 @@ const plugin = {
 			api.logger.warn?.(`[oh-my-openclaw] failed to install scripts: ${err}`);
 		}
 
+		// CLI: openclaw omo-init
+		api.registerCli(
+			({ program, workspaceDir, logger }) => {
+				program
+					.command("omo-init")
+					.description("Bootstrap Oh My OpenClaw handbook directories and scripts")
+					.option("--force", "Overwrite existing scripts")
+					.option("--dry-run", "Preview changes without writing")
+					.action(async (opts: { force?: boolean; dryRun?: boolean }) => {
+						const handbookDir =
+							pluginCfg.handbookDir ||
+							(workspaceDir ? path.join(workspaceDir, "handbook") : resolveHandbookDir());
+
+						const dirs = [
+							"inbox/assignments",
+							"inbox/archive",
+							"projects",
+							"feedback",
+							"scripts/task-kit",
+						];
+
+						if (opts.dryRun) {
+							logger.info?.(`[omo-init] Would bootstrap: ${handbookDir}`);
+							for (const d of dirs) {
+								logger.info?.(`  mkdir -p ${path.join(handbookDir, d)}`);
+							}
+							const srcDir = path.join(pluginRoot, "scripts", "task-kit");
+							if (fs.existsSync(srcDir)) {
+								for (const file of fs.readdirSync(srcDir)) {
+									logger.info?.(`  copy ${file} → scripts/task-kit/${file}`);
+								}
+							}
+							return;
+						}
+
+						bootstrapHandbook(handbookDir);
+						logger.info?.(`[omo-init] Created handbook directories at ${handbookDir}`);
+
+						installScripts(handbookDir, opts.force);
+						logger.info?.("[omo-init] Installed task-kit scripts");
+
+						console.log(`✓ Handbook bootstrapped at ${handbookDir}`);
+					});
+			},
+			{ commands: ["omo-init"] },
+		);
+
 		// Hook 1: inject assignment context
 		api.on("before_prompt_build", async (_event, ctx) => {
 			if (ctx.workspaceDir) resolvedWorkspaceDir = ctx.workspaceDir;
@@ -232,16 +274,19 @@ const plugin = {
 			if (onlyAgents.length > 0 && !onlyAgents.includes(agentId)) {
 				return undefined;
 			}
-			const handbookDir = pluginCfg.handbookDir || resolveHandbookDir(ctx.workspaceDir ? path.join(ctx.workspaceDir, "handbook") : undefined);
+			const handbookDir =
+				pluginCfg.handbookDir ||
+				resolveHandbookDir(ctx.workspaceDir ? path.join(ctx.workspaceDir, "handbook") : undefined);
 			const assignmentsDir =
 				pluginCfg.assignmentsDir || path.join(handbookDir, "inbox", "assignments");
 			const maxAssignments = Math.max(1, Math.min(50, Number(pluginCfg.maxAssignments || 10)));
 
 			const assignments = loadAssignments(assignmentsDir)
 				.filter((a) => a.to === agentId && (a.status ?? "assigned") === "assigned")
-				.sort((a, b) =>
-					(PRIORITY_ORDER[a.priority ?? "normal"] ?? 1) -
-					(PRIORITY_ORDER[b.priority ?? "normal"] ?? 1)
+				.sort(
+					(a, b) =>
+						(PRIORITY_ORDER[a.priority ?? "normal"] ?? 1) -
+						(PRIORITY_ORDER[b.priority ?? "normal"] ?? 1),
 				)
 				.slice(0, maxAssignments);
 
@@ -309,7 +354,8 @@ const plugin = {
 					}
 				}
 
-				const workspaceDir = resolvedWorkspaceDir || process.cwd();
+				const workspaceDir =
+					resolvedWorkspaceDir || path.join(os.homedir(), ".openclaw", "workspace");
 				const handbookDir = pluginCfg.handbookDir || path.join(workspaceDir, "handbook");
 				const feedbackDir = pluginCfg.feedbackDir || path.join(handbookDir, "feedback");
 				fs.mkdirSync(feedbackDir, { recursive: true });
